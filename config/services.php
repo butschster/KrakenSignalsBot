@@ -35,4 +35,9 @@ return [
         'secret' => env('STRIPE_SECRET'),
     ],
 
+    'kraken' => [
+        'key' => env('KRAKEN_KEY'),
+        'secret' => env('KRAKEN_SECRET'),
+        'otp' => env('KRAKEN_OTP'),
+    ]
 ];
