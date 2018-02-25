@@ -160,6 +160,7 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
         App\Providers\KrakenServiceProvider::class,
+        App\Providers\ImapServiceProvider::class,
 
     ],
 
