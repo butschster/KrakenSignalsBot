@@ -3,7 +3,10 @@
 namespace App\Services\Kraken;
 
 use App\Contracts\Services\Kraken\Client as ClientContract;
+use App\Contracts\Services\Kraken\Order as OrderContract;
+use Carbon\Carbon;
 use GuzzleHttp\Client as HttpClient;
+use Illuminate\Support\Collection;
 
 class Client implements ClientContract
 {
@@ -48,6 +51,94 @@ class Client implements ClientContract
         $this->key = $key;
         $this->secret = $secret;
         $this->otp = $otp;
+    }
+
+    /**
+     * Get account balance
+     *
+     * @return Collection
+     * @throws KrakenApiErrorException
+     */
+    public function getAccountBalance(): Collection
+    {
+        $result = $this->request('Balance', [], false);
+
+        return collect($result)->map(function ($amount, $currency) {
+            return new Balance($currency, $amount);
+        });
+    }
+
+    /**
+     * Get trade balance
+     *
+     * @return array
+     * @throws KrakenApiErrorException
+     */
+    public function getTradeBalance(): array
+    {
+        return $this->request('Balance', [], false);
+    }
+
+    /**
+     * Get open orders
+     *
+     * @param bool $trades Whether or not to include trades in output
+     * @return array
+     * @throws KrakenApiErrorException
+     */
+    public function getOpenOrders(bool $trades = false): array
+    {
+        return $this->request('OpenOrders', ['trades' => $trades], false);
+    }
+
+    /**
+     * Get closed orders
+     *
+     * @param bool $trades Whether or not to include trades in output
+     * @param Carbon|null $start Starting date
+     * @param Carbon|null $end Ending date
+     * @return array
+     * @throws KrakenApiErrorException
+     */
+    public function getClosedOrders(bool $trades = false, Carbon $start = null, Carbon $end = null): array
+    {
+        $parameters = ['trades' => $trades];
+
+        if ($start) {
+            $parameters['start'] = $start->timestamp;
+        }
+
+        if ($end) {
+            $parameters['end'] = $end->timestamp;
+        }
+
+        return $this->request('ClosedOrders', $parameters, false);
+    }
+
+    /**
+     * Add standard order
+     *
+     * @param OrderContract $order
+     * @return OrderStatus
+     * @throws KrakenApiErrorException
+     */
+    public function addOrder(OrderContract $order): OrderStatus
+    {
+        $result = $this->request('AddOrder', $order->toArray(), false);
+
+        return new OrderStatus($result['txid'][0], $result['descr']);
+    }
+
+    /**
+     * Cancel open order
+     *
+     * @param string $transactionId
+     * @return array
+     * @throws KrakenApiErrorException
+     */
+    public function cancelOrder(string $transactionId): array
+    {
+        return $this->request('CancelOrder', ['txid' => $transactionId], false);
     }
 
     /**
@@ -115,6 +206,8 @@ class Client implements ClientContract
     }
 
     /**
+     * Message signature using HMAC-SHA512 of (URI path + SHA256(nonce + POST data)) and base64 decoded secret API key
+     *
      * @param string $method
      * @param array $parameters
      * @return string
