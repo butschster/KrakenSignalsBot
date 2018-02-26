@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Contracts\Services\Imap\Client;
+use App\Events\Imap\ImapConnectionFailed;
 use App\Services\Imap\WorkerOptions;
 use Ddeboer\Imap\Message;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -22,7 +24,7 @@ class ListenInboxEmails extends Command
                             {--delay=0 : The number of seconds to delay failed messages}
                             {--force : Force the worker to run even in maintenance mode}
                             {--memory=128 : The memory limit in megabytes}
-                            {--sleep=30 : Number of seconds to sleep when no messages is available}
+                            {--sleep=5 : Number of seconds to sleep when no messages is available}
                             {--timeout=60 : The number of seconds a child process can run}
                             {--tries=0 : Number of times to attempt a messages before logging it failed}';
 
@@ -47,10 +49,21 @@ class ListenInboxEmails extends Command
 
     /**
      * @param Worker $worker
+     * @param Client $client
      * @throws \Throwable
      */
-    public function handle(Worker $worker)
+    public function handle(Worker $worker, Client $client)
     {
+        try {
+            $client->connect();
+        } catch (\Ddeboer\Imap\Exception\AuthenticationFailedException $e) {
+            $this->error('Imap server: Authentication failed');
+            return;
+        } catch (\Exception $e) {
+            $this->error($e->getMessage());
+            return;
+        }
+
         $this->listenForEvents();
 
         $worker->setCache(
@@ -89,6 +102,10 @@ class ListenInboxEmails extends Command
 
         $this->events->listen(MessageProcessed::class, function ($event) {
             $this->writeOutput($event->message, 'success');
+        });
+
+        $this->events->listen(ImapConnectionFailed::class, function (ImapConnectionFailed $event) {
+            $this->error($event->exception->getMessage());
         });
 
         $this->events->listen(MessageFailed::class, function ($event) {

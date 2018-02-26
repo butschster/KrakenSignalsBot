@@ -4,12 +4,14 @@ namespace App\Services\Imap;
 
 use App\Contracts\Services\Imap\Client;
 use App\Events\Imap\ExceptionOccurred;
+use App\Events\Imap\ImapConnectionFailed;
 use App\Events\Imap\MessageFailed;
 use App\Events\Imap\MessageProcessed;
 use App\Events\Imap\MessageProcessing;
 use App\Events\Imap\WorkerStopping;
 use App\Jobs\Imap\HandleIncommingMessage;
-use Ddeboer\Imap\Message;
+use Ddeboer\Imap\MessageInterface as Message;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Exception;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\DetectsLostConnections;
@@ -66,10 +68,11 @@ class Worker
      * @param Dispatcher $events
      * @param Client $client
      */
-    public function __construct(Dispatcher $events, Client $client)
+    public function __construct(Dispatcher $events, Client $client, ExceptionHandler $exceptions)
     {
         $this->events = $events;
         $this->client = $client;
+        $this->exceptions = $exceptions;
     }
 
     /**
@@ -84,16 +87,23 @@ class Worker
         $lastRestart = $this->getTimestampOfLastRestart();
 
         while (true) {
-            if (! $this->daemonShouldRun($options)) {
-                $this->pauseWorker($options, $lastRestart);
+            if (!$this->checkImapServerConnection($options)) {
+                $this->sleep(5);
+                $this->reconnectToImapServer($options);
+                continue;
+            }
 
+            if (!$this->daemonShouldRun($options)) {
+                $this->pauseWorker($options, $lastRestart);
                 continue;
             }
 
             $messages = $this->getUnreadMessages();
 
             if ($messages->count() > 0) {
-                $this->proecessMessages($messages, $options);
+                $messages->each(function ($message) use($options) {
+                    $this->handleMessage($message, $options);
+                });
             } else {
                 $this->sleep($options->sleep);
             }
@@ -113,7 +123,7 @@ class Worker
     /**
      * Stop the worker if we have lost connection to a database.
      *
-     * @param  \Throwable  $e
+     * @param  \Throwable $e
      * @return void
      */
     protected function stopWorkerIfLostConnection($e)
@@ -121,17 +131,45 @@ class Worker
         if ($this->causedByLostConnection($e)) {
             $this->shouldQuit = true;
         }
+
+//        if ($this->causedByLostConnectionWithImapServer($e)) {
+//            $this->shouldQuit = true;
+//        }
     }
 
     /**
-     * @param Collection $messages
-     * @param WorkerOptions $options
-     * @throws \Throwable
+     * @return bool
      */
-    public function proecessMessages(Collection $messages, WorkerOptions $options)
+    protected function causedByLostConnectionWithImapServer($e): bool
     {
-        foreach ($messages as $message) {
+        try {
+            $this->client->ping();
+
+            return false;
+        } catch (\Exception $e) {}
+
+        return true;
+    }
+
+    /**
+     * Process the given message.
+     *
+     * @param  Message $message
+     * @param  WorkerOptions  $options
+     * @return void
+     */
+    public function handleMessage(Message $message, WorkerOptions $options)
+    {
+        try {
             $this->process($message, $options);
+        } catch (Exception $e) {
+            $this->exceptions->report($e);
+
+            $this->stopWorkerIfLostConnection($e);
+        } catch (Throwable $e) {
+            $this->exceptions->report($e = new FatalThrowableError($e));
+
+            $this->stopWorkerIfLostConnection($e);
         }
     }
 
@@ -139,23 +177,23 @@ class Worker
      * Process the given message from.
      *
      * @param  Message $message
-     * @param  WorkerOptions  $options
+     * @param  WorkerOptions $options
      * @return void
      *
      * @throws Throwable
      */
-    public function process(Message $message, WorkerOptions $options)
+    public function process(Message $message, WorkerOptions $options): void
     {
         try {
             $this->raiseMessageProcessingEvent($message);
 
-            dispatch(new HandleIncommingMessage($message));
+            HandleIncommingMessage::dispatch($message);
 
             $this->raiseMessageProcessedEvent($message);
         } catch (Exception $e) {
-            $this->handleJobException($message, $options, $e);
+            $this->handleMessageException($message, $options, $e);
         } catch (Throwable $e) {
-            $this->handleJobException(
+            $this->handleMessageException(
                 $message, $options, new FatalThrowableError($e)
             );
         }
@@ -165,13 +203,13 @@ class Worker
      * Handle an exception that occurred while the job was running.
      *
      * @param  Message $message
-     * @param  WorkerOptions  $options
-     * @param  \Exception  $e
+     * @param  WorkerOptions $options
+     * @param  \Exception $e
      * @return void
      *
      * @throws \Exception
      */
-    protected function handleJobException(Message $message, WorkerOptions $options, $e)
+    protected function handleMessageException(Message $message, WorkerOptions $options, $e)
     {
         try {
             $this->failMessageProcessing($message);
@@ -225,7 +263,7 @@ class Worker
      * Raise the exception occurred queue job event.
      *
      * @param  Message $message
-     * @param  Exception  $e
+     * @param  Exception $e
      * @return void
      */
     protected function raiseExceptionOccurredJobEvent(Message $message, $e)
@@ -238,7 +276,7 @@ class Worker
     /**
      * Determine if the queue worker should restart.
      *
-     * @param  int|null  $lastRestart
+     * @param  int|null $lastRestart
      * @return bool
      */
     protected function shouldRestart($lastRestart)
@@ -261,7 +299,7 @@ class Worker
     /**
      * Determine if the queue worker should restart.
      *
-     * @param  int|null  $lastRestart
+     * @param  int|null $lastRestart
      * @return bool
      */
     protected function queueShouldRestart($lastRestart)
@@ -272,7 +310,7 @@ class Worker
     /**
      * Set the cache repository implementation.
      *
-     * @param  \Illuminate\Contracts\Cache\Repository  $cache
+     * @param  \Illuminate\Contracts\Cache\Repository $cache
      * @return void
      */
     public function setCache(CacheContract $cache)
@@ -283,19 +321,19 @@ class Worker
     /**
      * Determine if the daemon should process on this iteration.
      *
-     * @param  WorkerOptions  $options
+     * @param  WorkerOptions $options
      * @return bool
      */
     protected function daemonShouldRun(WorkerOptions $options)
     {
-        return ! ($this->paused);
+        return !($this->paused);
     }
 
     /**
      * Pause the worker for the current loop.
      *
-     * @param  WorkerOptions  $options
-     * @param  int  $lastRestart
+     * @param  WorkerOptions $options
+     * @param  int $lastRestart
      * @return void
      */
     protected function pauseWorker(WorkerOptions $options, $lastRestart)
@@ -308,8 +346,8 @@ class Worker
     /**
      * Stop the process if necessary.
      *
-     * @param  WorkerOptions  $options
-     * @param  int  $lastRestart
+     * @param  WorkerOptions $options
+     * @param  int $lastRestart
      */
     protected function stopIfNecessary(WorkerOptions $options, $lastRestart)
     {
@@ -327,7 +365,7 @@ class Worker
     /**
      * Determine if the memory limit has been exceeded.
      *
-     * @param  int   $memoryLimit
+     * @param  int $memoryLimit
      * @return bool
      */
     public function memoryExceeded($memoryLimit)
@@ -338,7 +376,7 @@ class Worker
     /**
      * Stop listening and bail out of the script.
      *
-     * @param  int  $status
+     * @param  int $status
      * @return void
      */
     public function stop($status = 0)
@@ -351,7 +389,7 @@ class Worker
     /**
      * Kill the process.
      *
-     * @param  int  $status
+     * @param  int $status
      * @return void
      */
     public function kill($status = 0)
@@ -368,7 +406,7 @@ class Worker
     /**
      * Sleep the script for a given number of seconds.
      *
-     * @param  int|float   $seconds
+     * @param  int|float $seconds
      * @return void
      */
     public function sleep($seconds)
@@ -377,6 +415,68 @@ class Worker
             usleep($seconds * 1000000);
         } else {
             sleep($seconds);
+        }
+    }
+
+    /**
+     * @param WorkerOptions $options
+     * @return bool
+     * @throws Exception
+     */
+    public function checkImapServerConnection(WorkerOptions $options): bool
+    {
+        try {
+            $this->client->ping();
+
+            return true;
+        } catch (\Exception $e) {
+            $this->handleImapException($options, $e);
+        }
+
+        return false;
+    }
+
+    /**
+     * Handle an exception that occurred with imap connection.
+     *
+     * @param  WorkerOptions $options
+     * @param  \Exception $e
+     * @return void
+     *
+     * @throws \Exception
+     */
+    protected function handleImapException(WorkerOptions $options, $e)
+    {
+        try {
+            $this->failImapConnection($e);
+        } catch (\Throwable $e) {
+            $this->exceptions->report($e);
+        }
+    }
+
+    /**
+     * Mark the given job as failed and raise the relevant event.
+     *
+     * @param Exception $e
+     * @return void
+     */
+    protected function failImapConnection(Exception $e)
+    {
+        $this->events->dispatch(new ImapConnectionFailed(
+            $e
+        ));
+    }
+
+    /**
+     * @param WorkerOptions $options
+     * @throws Exception
+     */
+    protected function reconnectToImapServer(WorkerOptions $options): void
+    {
+        try {
+            $this->client->reconnect();
+        } catch (\Exception $e) {
+            $this->handleImapException($options, $e);
         }
     }
 }

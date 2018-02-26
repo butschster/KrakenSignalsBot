@@ -2,7 +2,7 @@
 
 namespace App\Events\Imap;
 
-use Ddeboer\Imap\Message;
+use Ddeboer\Imap\MessageInterface as Message;
 
 class MessageFailed
 {

@@ -2,7 +2,7 @@
 
 namespace App\Jobs\Imap;
 
-use Ddeboer\Imap\Message;
+use Ddeboer\Imap\MessageInterface as Message;
 use Illuminate\Foundation\Bus\Dispatchable;
 
 class HandleIncommingMessage
