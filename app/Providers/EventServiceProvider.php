@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\Facades\Event;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider
@@ -13,9 +12,21 @@ class EventServiceProvider extends ServiceProvider
      * @var array
      */
     protected $listen = [
-        'App\Events\Event' => [
-            'App\Listeners\EventListener',
+        \App\Events\Kraken\OrderCreated::class => [
+            \App\Listeners\Kraken\LogCreatedOrderToDatabase::class
         ],
+        \App\Events\Kraken\OrderFailed::class => [
+            \App\Listeners\Kraken\LogFailedOrderToDatabase::class
+        ],
+        \App\Events\Imap\MessageProcessing::class => [
+            \App\Listeners\Imap\LogMessageProcessingToDatabase::class
+        ],
+        \App\Events\Imap\MessageProcessed::class => [
+            \App\Listeners\Imap\LogMessageProcessingToDatabase::class
+        ],
+        \App\Events\Imap\MessageFailed::class => [
+            \App\Listeners\Imap\LogMessageProcessingToDatabase::class
+        ]
     ];
 
     /**

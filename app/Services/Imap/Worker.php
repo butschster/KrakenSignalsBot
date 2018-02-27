@@ -9,7 +9,7 @@ use App\Events\Imap\MessageFailed;
 use App\Events\Imap\MessageProcessed;
 use App\Events\Imap\MessageProcessing;
 use App\Events\Imap\WorkerStopping;
-use App\Jobs\Imap\HandleIncommingMessage;
+use App\Jobs\Imap\HandleIncomingMessage;
 use Ddeboer\Imap\MessageInterface as Message;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Exception;
@@ -67,6 +67,7 @@ class Worker
     /**
      * @param Dispatcher $events
      * @param Client $client
+     * @param ExceptionHandler $exceptions
      */
     public function __construct(Dispatcher $events, Client $client, ExceptionHandler $exceptions)
     {
@@ -187,7 +188,8 @@ class Worker
         try {
             $this->raiseMessageProcessingEvent($message);
 
-            HandleIncommingMessage::dispatch($message);
+            $this->client->markAsRead($message);
+            dispatch(new HandleIncomingMessage($message));
 
             $this->raiseMessageProcessedEvent($message);
         } catch (Exception $e) {

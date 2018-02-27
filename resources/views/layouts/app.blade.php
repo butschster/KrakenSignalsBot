@@ -27,7 +27,8 @@
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <!-- Left Side Of Navbar -->
                     <ul class="navbar-nav mr-auto">
-
+                        <li><a class="nav-link" href="{{ route('alerts') }}">Alerts</a></li>
+                        <li><a class="nav-link" href="{{ route('logs') }}">Logs</a></li>
                     </ul>
 
                     <!-- Right Side Of Navbar -->

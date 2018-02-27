@@ -2,6 +2,7 @@
 
 namespace App\Contracts\Services\Kraken;
 
+use App\Services\Kraken\Balance;
 use App\Services\Kraken\KrakenApiErrorException;
 use App\Services\Kraken\OrderStatus;
 use Carbon\Carbon;
@@ -24,7 +25,7 @@ interface Client
     /**
      * Get account balance
      *
-     * @return Collection
+     * @return Collection|Balance[]
      * @throws KrakenApiErrorException
      */
     public function getAccountBalance(): Collection;

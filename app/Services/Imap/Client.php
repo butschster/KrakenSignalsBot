@@ -89,7 +89,7 @@ class Client implements ClientContract
      */
     public function getUnreadMessages(): Collection
     {
-        $mailbox = $this->connection->getMailbox('INBOX');
+        $mailbox = $this->connection->getMailbox(ClientContract::MAILBOX_INBOX);
 
         $search = new SearchExpression();
         $search->addCondition(new Unseen());
@@ -107,5 +107,54 @@ class Client implements ClientContract
     public function markAsRead(Message $message): bool
     {
         return $message->markAsSeen();
+    }
+
+    /**
+     * Get a message by message number in given mailbox.
+     *
+     * @param int $number
+     * @param string $mailbox
+     * @return Message
+     */
+    public function getMessage(int $number, string $mailbox): Message
+    {
+        return $this->getMailBoxOrCreate($mailbox)->getMessage($number);
+    }
+
+    /**
+     * Move message to Processed mailbox
+     *
+     * @param Message $message
+     */
+    public function moveToProcessed(Message $message): void
+    {
+        $message->move(
+            $this->getMailBoxOrCreate(ClientContract::MAILBOX_PROCESSED)
+        );
+    }
+
+    /**
+     * Move message to Failed mailbox
+     *
+     * @param Message $message
+     */
+    public function moveToFailed(Message $message): void
+    {
+        $message->move(
+            $this->getMailBoxOrCreate(ClientContract::MAILBOX_FAILED)
+        );
+    }
+
+    /**
+     * @param string $name
+     * @return \Ddeboer\Imap\MailboxInterface
+     */
+    protected function getMailBoxOrCreate(string $name): \Ddeboer\Imap\MailboxInterface
+    {
+        if (!$this->connection->hasMailbox($name)) {
+            return $this->connection->createMailbox($name);
+        }
+
+        return $this->connection->getMailbox($name);
     }
 }

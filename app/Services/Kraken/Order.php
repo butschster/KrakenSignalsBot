@@ -188,11 +188,11 @@ class Order implements OrderContract
         }
 
         if ($this->startTime) {
-            $parameters['starttm'] = $this->startTime->diffInSeconds();
+            $parameters['starttm'] = $this->startTime->timestamp;
         }
 
         if ($this->expireTime) {
-            $parameters['expiretm'] = $this->expireTime->diffInSeconds();
+            $parameters['expiretm'] = $this->expireTime->timestamp;
         }
 
         if ($this->userRef) {

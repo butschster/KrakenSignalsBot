@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\Imap;
 
+use App\Contracts\OrderManager;
 use App\Contracts\Services\Imap\Client;
 use App\Events\Imap\ImapConnectionFailed;
 use App\Events\Imap\MessageFailed;
@@ -23,15 +24,32 @@ class WorkerTest extends TestCase
     {
         Event::fake();
 
+        $this->app->instance(
+            Client::class,
+            $client = m::mock(Client::class)
+        );
+
+        $this->app->instance(
+            OrderManager::class,
+            $manager = m::mock(OrderManager::class)
+        );
+
         $worker = $this->getWorker();
 
         $message = m::mock(MessageInterface::class);
-        $message->shouldReceive('markAsSeen')->once();
+        $manager->shouldReceive('createOrderFromEmail')
+            ->once()
+            ->with($message)
+            ->andReturn(m::mock(\App\Services\Kraken\OrderStatus::class));
 
-        $worker->handleMessage(
-            $message,
-            m::mock(WorkerOptions::class)
-        );
+
+        $message->shouldReceive('getNumber')->once()->andReturn($number = 1);
+        $client->shouldReceive('markAsRead')->once()->with($message)->andReturnTrue();
+        $client->shouldReceive('connect')->once();
+        $client->shouldReceive('getMessage')->once()->with($number, Client::MAILBOX_INBOX)->andReturn($message);
+        $client->shouldReceive('moveToProcessed')->once()->with($message);
+
+        $worker->process($message, m::mock(WorkerOptions::class));
 
         Event::assertDispatched(MessageProcessing::class, function ($e) use ($message) {
             return $e->message == $message;

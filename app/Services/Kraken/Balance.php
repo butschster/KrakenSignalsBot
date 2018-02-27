@@ -36,6 +36,6 @@ class Balance
      */
     public function amount(): float
     {
-        return $this->amount;
+        return (float) number_format($this->amount, 4, '.', '');
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Services\Kraken;
 
+use App\Alert;
+
 class OrderStatus
 {
     /**
@@ -13,6 +15,11 @@ class OrderStatus
      * @var OrderStatusDescription[]
      */
     protected $descriptions;
+
+    /**
+     * @var Alert
+     */
+    protected $alert;
 
     /**
      * @param string $transactionId
@@ -32,6 +39,14 @@ class OrderStatus
     }
 
     /**
+     * @param Alert $alert
+     */
+    public function setAlert(Alert $alert)
+    {
+        $this->alert = $alert;
+    }
+
+    /**
      * @return string
      */
     public function getTransactionId(): string
@@ -45,5 +60,13 @@ class OrderStatus
     public function getDescriptions(): array
     {
         return $this->descriptions;
+    }
+
+    /**
+     * @return Alert
+     */
+    public function getAlert(): Alert
+    {
+        return $this->alert;
     }
 }

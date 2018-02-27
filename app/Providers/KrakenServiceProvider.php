@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Contracts\OrderManager as OrderManagerContract;
 use App\Contracts\Services\Kraken\Client as ClientContract;
+use App\OrderManager;
 use App\Services\Kraken\Client;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,6 +25,12 @@ class KrakenServiceProvider extends ServiceProvider
                 $config['key'],
                 $config['secret'],
                 $config['otp']
+            );
+        });
+
+        $this->app->singleton(OrderManagerContract::class, function() {
+            return new OrderManager(
+                $this->app[ClientContract::class]
             );
         });
     }

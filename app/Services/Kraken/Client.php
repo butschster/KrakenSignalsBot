@@ -4,9 +4,11 @@ namespace App\Services\Kraken;
 
 use App\Contracts\Services\Kraken\Client as ClientContract;
 use App\Contracts\Services\Kraken\Order as OrderContract;
+use App\Log;
 use Carbon\Carbon;
 use GuzzleHttp\Client as HttpClient;
 use Illuminate\Support\Collection;
+use Psr\Http\Message\ResponseInterface;
 
 class Client implements ClientContract
 {
@@ -76,7 +78,7 @@ class Client implements ClientContract
      */
     public function getTradeBalance(): array
     {
-        return $this->request('Balance', [], false);
+        return $this->request('TradeBalance', [], false);
     }
 
     /**
@@ -165,15 +167,16 @@ class Client implements ClientContract
             $headers['API-Sign'] = $this->generateSign($method, $parameters);
         }
 
+        Log::message(sprintf('Kraken API [%s]: %s', $method, json_encode($parameters)));
+
         $response = $this->client->post($this->buildUrl($method, $isPublic), [
             'headers' => $headers,
             'form_params' => $parameters,
             'verify' => true
         ]);
 
-        $result = \GuzzleHttp\json_decode(
-            $response->getBody()->getContents(),
-            true
+        $result = $this->decodeResult(
+            $response->getBody()->getContents()
         );
 
         if (!empty($result['error'])) {
@@ -237,5 +240,19 @@ class Client implements ClientContract
     {
         $nonce = explode(' ', microtime());
         return $nonce[1] . str_pad(substr($nonce[0], 2, 6), 6, '0');
+    }
+
+    /**
+     * @param $response
+     * @return array
+     */
+    protected function decodeResult($response): array
+    {
+        Log::message("Kraken API response: " . $response);
+
+        return \GuzzleHttp\json_decode(
+            $response,
+            true
+        );
     }
 }
