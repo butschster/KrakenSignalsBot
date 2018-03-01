@@ -4,11 +4,13 @@ namespace App\Services\Kraken;
 
 use App\Contracts\Services\Kraken\Client as ClientContract;
 use App\Contracts\Services\Kraken\Order as OrderContract;
-use App\Log;
+use App\Entities\Log;
+use App\Services\Kraken\Objects\{
+    Balance, OrdersCollection, OrderStatus, Pair
+};
 use Carbon\Carbon;
 use GuzzleHttp\Client as HttpClient;
 use Illuminate\Support\Collection;
-use Psr\Http\Message\ResponseInterface;
 
 class Client implements ClientContract
 {
@@ -56,6 +58,18 @@ class Client implements ClientContract
     }
 
     /**
+     * @param string $pair
+     * @return Pair
+     * @throws KrakenApiErrorException
+     */
+    public function getAssetPair(string $pair): Pair
+    {
+        $result = $this->request('AssetPairs', ['pair' => $pair], true);
+
+        return new Pair($pair, array_first($result));
+    }
+
+    /**
      * Get account balance
      *
      * @return Collection
@@ -85,12 +99,16 @@ class Client implements ClientContract
      * Get open orders
      *
      * @param bool $trades Whether or not to include trades in output
-     * @return array
+     * @return OrdersCollection
      * @throws KrakenApiErrorException
      */
-    public function getOpenOrders(bool $trades = false): array
+    public function getOpenOrders(bool $trades = false): OrdersCollection
     {
-        return $this->request('OpenOrders', ['trades' => $trades], false);
+        $orders = $this->request('OpenOrders', ['trades' => $trades], false);
+
+        return $this->makeCollection(
+            $orders['open']
+        );
     }
 
     /**
@@ -99,10 +117,10 @@ class Client implements ClientContract
      * @param bool $trades Whether or not to include trades in output
      * @param Carbon|null $start Starting date
      * @param Carbon|null $end Ending date
-     * @return array
+     * @return OrdersCollection
      * @throws KrakenApiErrorException
      */
-    public function getClosedOrders(bool $trades = false, Carbon $start = null, Carbon $end = null): array
+    public function getClosedOrders(bool $trades = false, Carbon $start = null, Carbon $end = null): OrdersCollection
     {
         $parameters = ['trades' => $trades];
 
@@ -114,7 +132,11 @@ class Client implements ClientContract
             $parameters['end'] = $end->timestamp;
         }
 
-        return $this->request('ClosedOrders', $parameters, false);
+        $orders = $this->request('ClosedOrders', $parameters, false);
+
+        return $this->makeCollection(
+            $orders['closed']
+        );
     }
 
     /**
@@ -144,6 +166,7 @@ class Client implements ClientContract
     }
 
     /**
+     * Make reuqest
      * @param string $method
      * @param array $parameters
      * @param bool $isPublic
@@ -152,9 +175,7 @@ class Client implements ClientContract
      */
     public function request(string $method, array $parameters = [], bool $isPublic = true): array
     {
-        $headers = [
-            'User-Agent' => 'Kraken PHP API Agent',
-        ];
+        $headers = ['User-Agent' => 'Kraken PHP API Agent'];
 
         if (!$isPublic) {
             if ($this->otp) {
@@ -169,15 +190,7 @@ class Client implements ClientContract
 
         Log::message(sprintf('Kraken API [%s]: %s', $method, json_encode($parameters)));
 
-        $response = $this->client->post($this->buildUrl($method, $isPublic), [
-            'headers' => $headers,
-            'form_params' => $parameters,
-            'verify' => true
-        ]);
-
-        $result = $this->decodeResult(
-            $response->getBody()->getContents()
-        );
+        $result = $this->sendRequest($method, $parameters, $isPublic, $headers);
 
         if (!empty($result['error'])) {
             throw new KrakenApiErrorException(implode(', ', $result['error']));
@@ -253,6 +266,37 @@ class Client implements ClientContract
         return \GuzzleHttp\json_decode(
             $response,
             true
+        );
+    }
+
+    /**
+     * @param array $orders
+     * @return OrdersCollection
+     */
+    protected function makeCollection(array $orders): OrdersCollection
+    {
+        return (new OrdersCollection($orders))->map(function ($order, $txid) {
+            return new Objects\Order($txid, $order);
+        });
+    }
+
+    /**
+     * @param string $method
+     * @param array $parameters
+     * @param bool $isPublic
+     * @param $headers
+     * @return array
+     */
+    protected function sendRequest(string $method, array $parameters, bool $isPublic, $headers): array
+    {
+        $response = $this->client->post($this->buildUrl($method, $isPublic), [
+            'headers' => $headers,
+            'form_params' => $parameters,
+            'verify' => true
+        ]);
+
+        return $this->decodeResult(
+            $response->getBody()->getContents()
         );
     }
 }

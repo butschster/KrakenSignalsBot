@@ -2,7 +2,7 @@
 
 namespace App\Listeners\Imap;
 
-use App\Log;
+use App\Entities\Log;
 
 class LogMessageProcessingToDatabase
 {

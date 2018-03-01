@@ -20,7 +20,7 @@
                 @foreach($logs as $log)
                     <tr>
                         <th>
-                            <small>{{ $log->created_at->format('d.F.Y H:i:s') }}</small>
+                            <small>{{ $log->created_at->format('d.m.Y H:i:s') }}</small>
                             <br />
                             <span class="badge badge-info">{{ $log->type }}</span>
                         </th>

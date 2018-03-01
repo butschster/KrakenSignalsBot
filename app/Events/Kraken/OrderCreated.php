@@ -2,7 +2,7 @@
 
 namespace App\Events\Kraken;
 
-use App\Services\Kraken\OrderStatus;
+use App\Services\Kraken\Objects\OrderStatus;
 
 class OrderCreated
 {

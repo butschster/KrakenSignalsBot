@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services\Kraken;
+namespace App\Services\Kraken\Objects;
 
-class Balance
+final class Balance
 {
     /**
      * @var string

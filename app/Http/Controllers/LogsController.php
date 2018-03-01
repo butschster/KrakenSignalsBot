@@ -2,15 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Log;
+use App\Entities\Log;
 
 class LogsController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
-
     public function index()
     {
         $logs = Log::latest()->paginate(10);

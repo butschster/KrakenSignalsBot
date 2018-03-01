@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Alert;
+use App\Entities\Alert;
 use Illuminate\Console\Command;
 
 class MarkOutdatedAlertsAsfailed extends Command
@@ -28,8 +28,10 @@ class MarkOutdatedAlertsAsfailed extends Command
      */
     public function handle()
     {
-        Alert::where('status', Alert::STATUS_NEW)->where('created_at', '<', now()->subDay())->update([
-            'status' => Alert::STATUS_FAILED
-        ]);
+        Alert::where('status', Alert::STATUS_NEW)
+            ->where('created_at', '<', now()->subMinutes(30))
+            ->update([
+                'status' => Alert::STATUS_FAILED
+            ]);
     }
 }

@@ -5,7 +5,7 @@ namespace Tests\Unit;
 use App\Contracts\Services\Kraken\Client;
 use App\Contracts\Services\Kraken\Order;
 use App\OrderManager;
-use App\Services\Kraken\OrderStatus;
+use App\Services\Kraken\Objects\OrderStatus;
 use Ddeboer\Imap\MessageInterface;
 use Tests\TestCase;
 use Mockery as m;

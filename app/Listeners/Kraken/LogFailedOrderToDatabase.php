@@ -3,7 +3,7 @@
 namespace App\Listeners\Kraken;
 
 use App\Events\Kraken\OrderFailed;
-use App\Log;
+use App\Entities\Log;
 
 class LogFailedOrderToDatabase
 {

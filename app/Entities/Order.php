@@ -1,6 +1,6 @@
 <?php
 
-namespace App;
+namespace App\Entities;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Order extends Model
 {
     const STATUS_OPEN = 'open';
-    const STATUS_PROCESSED = 'processed';
+    const STATUS_CLOSED = 'closed';
+    const STATUS_CANCELED = 'canceled';
 
     protected $fillable = ['txid', 'status', 'alert_id'];
 
@@ -26,6 +27,15 @@ class Order extends Model
      */
     public function alert()
     {
-        return $this->hasOne(Alert::class);
+        return $this->belongsTo(Alert::class);
+    }
+
+    /**
+     * @param $query
+     * @return mixed
+     */
+    public function scopeOpen($query)
+    {
+        return $query->where('status', static::STATUS_OPEN);
     }
 }

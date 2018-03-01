@@ -30,6 +30,17 @@ class EventServiceProvider extends ServiceProvider
     ];
 
     /**
+     * The event observers mappings for the models.
+     *
+     * @var array
+     */
+    protected $observers = [
+        \App\Entities\Balance::class => [
+            \App\Entities\Observers\BalanceChanged::class
+        ],
+    ];
+
+    /**
      * Register any events for your application.
      *
      * @return void
@@ -38,6 +49,15 @@ class EventServiceProvider extends ServiceProvider
     {
         parent::boot();
 
-        //
+        $this->registerObservers();
+    }
+
+    protected function registerObservers(): void
+    {
+        foreach ($this->observers as $model => $observers) {
+            foreach ($observers as $observer) {
+                $model::observe($observer);
+            }
+        }
     }
 }

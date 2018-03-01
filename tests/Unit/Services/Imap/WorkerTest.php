@@ -40,7 +40,7 @@ class WorkerTest extends TestCase
         $manager->shouldReceive('createOrderFromEmail')
             ->once()
             ->with($message)
-            ->andReturn(m::mock(\App\Services\Kraken\OrderStatus::class));
+            ->andReturn(m::mock(\App\Services\Kraken\Objects\OrderStatus::class));
 
 
         $message->shouldReceive('getNumber')->once()->andReturn($number = 1);

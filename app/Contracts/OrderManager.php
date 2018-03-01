@@ -4,7 +4,7 @@ namespace App\Contracts;
 
 use App\Services\Imap\MessageContentParseException;
 use App\Services\Kraken\KrakenApiErrorException;
-use App\Services\Kraken\OrderStatus;
+use App\Services\Kraken\Objects\OrderStatus;
 use Ddeboer\Imap\MessageInterface;
 
 interface OrderManager

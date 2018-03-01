@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\Kraken;
 
-use App\Balance as BalanceEntity;
+use App\Entities\Balance as BalanceEntity;
 use App\Contracts\Services\Kraken\Client;
 use App\Exceptions\Handler;
-use App\Services\Kraken\Balance;
+use App\Services\Kraken\Objects\Balance;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 
@@ -33,11 +33,36 @@ class CheckAccountBalance extends Command
     {
         try {
             $balances = $client->getAccountBalance();
+
+            $this->table(['Currency', 'Amount'], $balances->map(function ($balance) {
+                return [
+                    $balance->currency(),
+                    $this->getFormattedAmount($balance->amount())
+                ];
+            }));
+
             $this->storeBalances($balances);
         } catch (\Exception $e) {
             $this->error("Cannot check account balance. [{$e->getMessage()}]");
             $handler->report($e);
         }
+    }
+
+    /**
+     * @param float $amount
+     * @return float|string
+     */
+    protected function getFormattedAmount(float $amount)
+    {
+        if ($amount > 0) {
+            return "<info>{$amount}</info>";
+        }
+
+        if ($amount < 0) {
+            return "<fg=red>{$amount}</>";
+        }
+
+        return $amount;
     }
 
     /**
@@ -47,13 +72,6 @@ class CheckAccountBalance extends Command
     {
         foreach ($balances as $balance) {
             $this->storeBalance($balance);
-
-            $this->info(sprintf(
-                '[%s][%s] - %s',
-                now()->toDateTimeString(),
-                $balance->currency(),
-                $balance->amount()
-            ));
         }
     }
 

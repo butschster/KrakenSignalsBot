@@ -24,7 +24,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('alerts:prune-outdated')->hourly();
+        $schedule->command('alerts:prune-outdated')->everyThirtyMinutes();
+        $schedule->command('kraken:balance')->everyThirtyMinutes();
+        $schedule->command('kraken:update-orders')->everyFiveMinutes();
     }
 
     /**

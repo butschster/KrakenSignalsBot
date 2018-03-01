@@ -7,7 +7,7 @@ use App\Contracts\OrderManager;
 use App\Events\Kraken\OrderCreated;
 use App\Events\Kraken\OrderFailed;
 use App\Exceptions\Handler;
-use App\Log;
+use App\Entities\Log;
 use Ddeboer\Imap\MessageInterface as Message;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;

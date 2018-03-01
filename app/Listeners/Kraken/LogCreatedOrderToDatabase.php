@@ -2,10 +2,10 @@
 
 namespace App\Listeners\Kraken;
 
-use App\Alert;
+use App\Entities\Alert;
 use App\Events\Kraken\OrderCreated;
-use App\Log;
-use App\Order;
+use App\Entities\Log;
+use App\Entities\Order;
 
 class LogCreatedOrderToDatabase
 {
@@ -19,7 +19,7 @@ class LogCreatedOrderToDatabase
         $alert = $status->getAlert();
 
         /** @var Order $order */
-        $order = Order::created([
+        $order = Order::create([
             'txid' => $status->getTransactionId(),
             'status' => Order::STATUS_OPEN,
             'alert_id' => $alert->id

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services\Kraken;
+namespace App\Services\Kraken\Objects;
 
-use App\Alert;
+use App\Entities\Alert;
 
-class OrderStatus
+final class OrderStatus
 {
     /**
      * @var string
@@ -30,12 +30,10 @@ class OrderStatus
         $this->transactionId = $transactionId;
         $this->descriptions = [];
 
-        foreach ($descriptions as $description) {
-            $this->descriptions[] = new OrderStatusDescription(
-                array_get($description, 'order'),
-                array_get($description, 'close')
-            );
-        }
+        $this->descriptions[] = new OrderStatusDescription(
+            array_get($descriptions, 'order'),
+            array_get($descriptions, 'close')
+        );
     }
 
     /**

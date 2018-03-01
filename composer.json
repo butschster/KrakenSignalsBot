@@ -7,6 +7,7 @@
     "require": {
         "php": ">=7.1.3",
         "ddeboer/imap": "^1.2",
+        "doctrine/dbal": "^2.6",
         "fideloper/proxy": "~4.0",
         "guzzlehttp/guzzle": "^6.3",
         "laravel/framework": "5.6.*",
@@ -15,6 +16,8 @@
         "symfony/dom-crawler": "^4.0"
     },
     "require-dev": {
+        "balping/artisan-bash-completion": "^1.0",
+        "barryvdh/laravel-ide-helper": "^2.4",
         "filp/whoops": "~2.0",
         "nunomaduro/collision": "~1.1",
         "fzaninotto/faker": "~1.4",

@@ -6,8 +6,9 @@ use App\Contracts\OrderInformation;
 use App\Contracts\OrderManager as OrderManagerContract;
 use App\Contracts\Services\Kraken\Client;
 use App\Contracts\Services\Kraken\Order;
+use App\Entities\Alert;
 use App\Services\Imap\MessageContentParser;
-use App\Services\Kraken\OrderStatus;
+use App\Services\Kraken\Objects\OrderStatus;
 use Ddeboer\Imap\MessageInterface;
 
 class OrderManager implements OrderManagerContract
@@ -85,7 +86,7 @@ class OrderManager implements OrderManagerContract
      */
     protected function logOrderInformation($orderInformation): void
     {
-        Log::message(sprintf(
+        \App\Entities\Log::message(sprintf(
             'Available new alert: [%s] %s %s',
             $orderInformation->getPair(),
             $orderInformation->getType(),

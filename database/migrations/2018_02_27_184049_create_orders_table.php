@@ -15,7 +15,7 @@ class CreateOrdersTable extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->increments('id');
-            $table->string('tdid')->unique();
+            $table->string('txid')->unique();
             $table->string('status', 15);
             $table->unsignedInteger('alert_id');
 

@@ -2,56 +2,61 @@
 
 @section('content')
     <div class="container">
-        <div class="card">
-            <div class="card-header">Alerts</div>
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">Alerts</div>
 
-            <table class="table">
-                <colgroup>
-                    <col width="200px">
-                    <col>
-                    <col width="100px">
-                    <col width="100px">
-                    <col width="100px">
-                </colgroup>
-                <thead>
-                <tr>
-                    <th>Time</th>
-                    <th>Pair</th>
-                    <th>Type</th>
-                    <th>Volume</th>
-                    <th>Order</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach($alerts as $alert)
-                    <tr>
-                        <th>
-                            <small>{{ $alert->created_at->format('d.F.Y H:i:s') }}</small>
-                            <br/>
-                            <span class="badge @if($alert->status == \App\Alert::STATUS_FAILED) badge-warning @else badge-info @endif">{{ $alert->status }}</span>
-                        </th>
-                        <td>
-                            {{ $alert->pair }}
-                        </td>
-                        <td>
-                            {{ $alert->type }}
-                        </td>
-                        <td>
-                            {{ $alert->volume }}
-                        </td>
-                        <td>
-                            @if($alert->order)
-                            Order: {{ $alert->order->id }}
-                            @endif
-                        </td>
-                    </tr>
-                @endforeach
-                </tbody>
+                    <table class="table">
+                        <colgroup>
+                            <col width="200px">
+                            <col>
+                            <col width="100px">
+                            <col width="100px">
+                        </colgroup>
+                        <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Pair</th>
+                            <th>Type</th>
+                            <th>Volume</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach($alerts as $alert)
+                            <tr>
+                                <th>
+                                    <small>{{ $alert->created_at->format('d.m.Y H:i:s') }}</small>
+                                    <br/>
+                                    <span class="badge @if($alert->status == \App\Entities\Alert::STATUS_FAILED) badge-warning @elseif($alert->status == \App\Entities\Alert::STATUS_PROCESSED) badge-success  @else badge-info @endif">{{ $alert->status }}</span>
+                                </th>
+                                <td>
+                                    {{ $alert->pair }}
 
-            </table>
+                                    @if($alert->order)
+                                        <br />
+                                        Order: {{ $alert->order->txid }} <span class="badge @if($alert->order->status == \App\Entities\Order::STATUS_CLOSED) badge-success @elseif($alert->order->status == \App\Entities\Order::STATUS_CANCELED) badge-warning @else badge-info @endif">{{ $alert->order->status }}</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    {{ $alert->type }}
+                                </td>
+                                <td>
+                                    {{ $alert->volume }}
+                                </td>
+                            </tr>
+                        @endforeach
+                        </tbody>
 
-            <div class="card-footer">
-                {!! $alerts->render() !!}
+                    </table>
+
+                    <div class="card-footer">
+                        {!! $alerts->render() !!}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <balance></balance>
             </div>
         </div>
     </div>

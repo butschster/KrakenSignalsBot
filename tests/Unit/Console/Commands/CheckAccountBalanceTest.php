@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Console\Commands;
 
-use App\Console\Commands\CheckAccountBalance;
+use App\Console\Commands\Kraken\CheckAccountBalance;
 use App\Contracts\Services\Kraken\Client;
-use App\Services\Kraken\Balance;
+use App\Services\Kraken\Objects\Balance;
 use Illuminate\Support\Collection;
 use Symfony\Component\Console\Input\StringInput;
 use Symfony\Component\Console\Output\NullOutput;

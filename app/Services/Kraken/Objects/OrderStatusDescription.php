@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services\Kraken;
+namespace App\Services\Kraken\Objects;
 
-class OrderStatusDescription
+final class OrderStatusDescription
 {
     /**
      * @var string
@@ -27,7 +27,7 @@ class OrderStatusDescription
     /**
      * @return string
      */
-    public function getOrder(): string
+    public function getOrder()
     {
         return $this->order;
     }
@@ -35,7 +35,7 @@ class OrderStatusDescription
     /**
      * @return string
      */
-    public function getClose(): string
+    public function getClose()
     {
         return $this->close;
     }

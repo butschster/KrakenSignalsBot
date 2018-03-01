@@ -6,6 +6,7 @@ use App\Contracts\OrderManager as OrderManagerContract;
 use App\Contracts\Services\Kraken\Client as ClientContract;
 use App\OrderManager;
 use App\Services\Kraken\Client;
+use App\Services\Kraken\FakeClient;
 use Illuminate\Support\ServiceProvider;
 
 class KrakenServiceProvider extends ServiceProvider
@@ -20,7 +21,7 @@ class KrakenServiceProvider extends ServiceProvider
         $this->app->singleton(ClientContract::class, function() {
             $config = $this->app->make('config')->get('services.kraken');
 
-            return new Client(
+            return new FakeClient(
                 new \GuzzleHttp\Client(),
                 $config['key'],
                 $config['secret'],
