@@ -128,9 +128,7 @@ class Client implements ClientContract
      */
     public function moveToProcessed(Message $message): void
     {
-        $message->move(
-            $this->getMailBoxOrCreate(ClientContract::MAILBOX_PROCESSED)
-        );
+        $this->moveMessageToMailbox($message, ClientContract::MAILBOX_PROCESSED);
     }
 
     /**
@@ -140,9 +138,7 @@ class Client implements ClientContract
      */
     public function moveToFailed(Message $message): void
     {
-        $message->move(
-            $this->getMailBoxOrCreate(ClientContract::MAILBOX_FAILED)
-        );
+        $this->moveMessageToMailbox($message, ClientContract::MAILBOX_FAILED);
     }
 
     /**
@@ -156,5 +152,18 @@ class Client implements ClientContract
         }
 
         return $this->connection->getMailbox($name);
+    }
+
+    /**
+     * @param Message $message
+     * @param string $mailbox
+     */
+    protected function moveMessageToMailbox(Message $message, string $mailbox): void
+    {
+        try {
+            $message->move(
+                $this->getMailBoxOrCreate($mailbox)
+            );
+        } catch (\Exception $e) {}
     }
 }

@@ -2,17 +2,23 @@
 
 namespace App\Jobs\Imap;
 
+use App\Contracts\Parser;
 use App\Contracts\Services\Imap\Client;
 use App\Contracts\OrderManager;
+use App\EmailParsers\PercentsOfAccountSizeParser;
+use App\EmailParsers\VolumeParser;
+use App\Events\AlertProcessing;
+use App\Events\Imap\MessageNotFound;
 use App\Events\Kraken\OrderCreated;
 use App\Events\Kraken\OrderFailed;
+use App\Events\ParserFound;
+use App\Exceptions\EmailParserNotFound;
 use App\Exceptions\Handler;
 use App\Entities\Log;
 use Ddeboer\Imap\MessageInterface as Message;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Psr\Log\LoggerInterface;
 
 class HandleIncomingMessage
 {
@@ -22,6 +28,14 @@ class HandleIncomingMessage
      * @var Message
      */
     public $messageId;
+
+    /**
+     * @var array
+     */
+    protected $parsers = [
+        PercentsOfAccountSizeParser::class,
+        VolumeParser::class
+    ];
 
     /**
      * Create a new job instance.
@@ -37,9 +51,9 @@ class HandleIncomingMessage
      * @param Client $client
      * @param OrderManager $orderManager
      * @param Handler $handler
-     * @param Dispatcher $dispatcher
+     * @param Dispatcher $events
      */
-    public function handle(Client $client, OrderManager $orderManager, Handler $handler, Dispatcher $dispatcher)
+    public function handle(Client $client, OrderManager $orderManager, Handler $handler, Dispatcher $events): void
     {
         $client->connect();
 
@@ -47,28 +61,66 @@ class HandleIncomingMessage
             $message = $client->getMessage($this->messageId, Client::MAILBOX_INBOX);
         } catch (\Exception $e) {
             $handler->report($e);
+            $events->dispatch(
+                new MessageNotFound($this->messageId, Client::MAILBOX_INBOX)
+            );
+
             return;
         }
 
-        Log::message('Processing new alert. Message: '. $message->getId());
-
         try {
-            $status = $orderManager->createOrderFromEmail($message);
-
-            $dispatcher->dispatch(
-                new OrderCreated($status)
+            $parser = $this->getMatchedParser($message);
+            $events->dispatch(
+                new ParserFound($parser, $message)
             );
 
-            return $client->moveToProcessed($message);
+            $orderManager->createOrderFromEmail(
+                $message, $this->getMatchedParser($message)
+            );
+
+            $client->moveToProcessed($message);
+            return;
+
         } catch (\Exception $e) {
 
-            $dispatcher->dispatch(
+            $events->dispatch(
                 new OrderFailed($e)
             );
 
             $handler->report($e);
         }
 
-        return $client->moveToFailed($message);
+        $client->moveToFailed($message);
+    }
+
+    /**
+     * @param Message $message
+     * @return Parser
+     * @throws EmailParserNotFound
+     */
+    protected function getMatchedParser(Message $message): Parser
+    {
+        $text = $message->getBodyText() ?: $message->getBodyHtml();
+
+        $parser = collect($this->parsers)->map(function ($parser) {
+            return $this->makeParser($parser);
+        })->first(function (Parser $parser) use ($text) {
+            return preg_match($parser->regex(), $text);
+        });
+
+        if (!$parser) {
+            throw new EmailParserNotFound("Parser for [{$text}] not found.");
+        }
+
+        return $parser;
+    }
+
+    /**
+     * @param string $parser
+     * @return Parser
+     */
+    protected function makeParser(string $parser): Parser
+    {
+        return app()->make($parser);
     }
 }

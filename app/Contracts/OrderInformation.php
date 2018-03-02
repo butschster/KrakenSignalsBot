@@ -2,16 +2,8 @@
 
 namespace App\Contracts;
 
-use Carbon\Carbon;
-
 interface OrderInformation
 {
-    /**
-     * Get order date
-     *
-     * @return Carbon
-     */
-    public function getDate(): Carbon;
 
     /**
      * Get order pair currency information
@@ -30,7 +22,7 @@ interface OrderInformation
     /**
      * Get order volume
      *
-     * @return int
+     * @return float
      */
-    public function getVolume(): int;
+    public function getVolume(): float;
 }

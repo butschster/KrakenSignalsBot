@@ -2,8 +2,8 @@
 
 namespace Tests\Unit\Services\Imap;
 
-use App\Contracts\Services\Kraken\Order;
 use App\Services\Imap\MessageContentParser;
+use Butschster\Kraken\Contracts\Order;
 use Tests\TestCase;
 
 class MessageContentParserTest extends TestCase

@@ -3,10 +3,10 @@
 namespace App\Providers;
 
 use App\Contracts\OrderManager as OrderManagerContract;
-use App\Contracts\Services\Kraken\Client as ClientContract;
 use App\OrderManager;
-use App\Services\Kraken\Client;
 use App\Services\Kraken\FakeClient;
+use Butschster\Kraken\Contracts\Client;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\ServiceProvider;
 
 class KrakenServiceProvider extends ServiceProvider
@@ -18,20 +18,23 @@ class KrakenServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->app->singleton(ClientContract::class, function() {
-            $config = $this->app->make('config')->get('services.kraken');
+        if ($this->app->isLocal()) {
+            $this->app->singleton(Client::class, function () {
+                $config = $this->app->make('config')->get('kraken');
 
-            return new FakeClient(
-                new \GuzzleHttp\Client(),
-                $config['key'],
-                $config['secret'],
-                $config['otp']
-            );
-        });
+                return new FakeClient(
+                    new \GuzzleHttp\Client(),
+                    $config['key'],
+                    $config['secret'],
+                    $config['otp']
+                );
+            });
+        }
 
         $this->app->singleton(OrderManagerContract::class, function() {
             return new OrderManager(
-                $this->app[ClientContract::class]
+                $this->app[Client::class],
+                $this->app[Dispatcher::class]
             );
         });
     }

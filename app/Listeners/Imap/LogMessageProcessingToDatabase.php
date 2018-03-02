@@ -8,6 +8,7 @@ class LogMessageProcessingToDatabase
 {
     /**
      * @param $event
+     * @throws \ReflectionException
      */
     public function handle($event)
     {

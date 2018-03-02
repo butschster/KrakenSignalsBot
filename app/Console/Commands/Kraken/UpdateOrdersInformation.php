@@ -3,8 +3,8 @@
 namespace App\Console\Commands\Kraken;
 
 use App\Entities\Order;
+use Butschster\Kraken\Contracts\Client;
 use Illuminate\Console\Command;
-use App\Contracts\Services\Kraken\Client;
 
 class UpdateOrdersInformation extends Command
 {
@@ -24,7 +24,7 @@ class UpdateOrdersInformation extends Command
 
     /**
      * @param Client $client
-     * @throws \App\Services\Kraken\KrakenApiErrorException
+     * @throws \Butschster\Kraken\Exceptions\KrakenApiErrorException
      */
     public function handle(Client $client)
     {

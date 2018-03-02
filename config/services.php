@@ -30,14 +30,8 @@ return [
     ],
 
     'stripe' => [
-        'model' => App\User::class,
+        'model' => App\Entities\User::class,
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
     ],
-
-    'kraken' => [
-        'key' => env('KRAKEN_KEY'),
-        'secret' => env('KRAKEN_SECRET'),
-        'otp' => env('KRAKEN_OTP'),
-    ]
 ];

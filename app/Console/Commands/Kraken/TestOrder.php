@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands\Kraken;
 
-use App\Services\Kraken\Order;
+use Butschster\Kraken\Contracts\Client;
+use Butschster\Kraken\Order;
 use Illuminate\Console\Command;
-use App\Contracts\Services\Kraken\Client;
 
 class TestOrder extends Command
 {
@@ -24,7 +24,7 @@ class TestOrder extends Command
 
     /**
      * @param Client $client
-     * @throws \App\Services\Kraken\KrakenApiErrorException
+     * @throws \Butschster\Kraken\Exceptions\KrakenApiErrorException
      */
     public function handle(Client $client)
     {
@@ -32,7 +32,5 @@ class TestOrder extends Command
         $order = $client->addOrder(
             new Order('ETHUSD', Order::TYPE_SELL, Order::ORDER_TYPE_MARKET, 0.1)
         );
-
-        dd($order);
     }
 }

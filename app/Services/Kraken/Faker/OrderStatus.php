@@ -2,8 +2,8 @@
 
 namespace App\Services\Kraken\Faker;
 
-use App\Contracts\Services\Kraken\Client;
 use App\Entities\Order;
+use Butschster\Kraken\Contracts\Client;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Testing\WithFaker;
 
@@ -35,6 +35,7 @@ class OrderStatus implements Arrayable
 
     /**
      * @return array
+     * @throws \Butschster\Kraken\Exceptions\KrakenApiErrorException
      */
     public function toArray()
     {
@@ -76,7 +77,7 @@ class OrderStatus implements Arrayable
 
     /**
      * @return string
-     * @throws \App\Services\Kraken\KrakenApiErrorException
+     * @throws \Butschster\Kraken\Exceptions\KrakenApiErrorException
      */
     private function getTxId(): string
     {

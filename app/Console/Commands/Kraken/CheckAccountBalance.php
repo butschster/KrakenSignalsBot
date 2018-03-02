@@ -2,12 +2,11 @@
 
 namespace App\Console\Commands\Kraken;
 
-use App\Entities\Balance as BalanceEntity;
-use App\Contracts\Services\Kraken\Client;
 use App\Exceptions\Handler;
-use App\Services\Kraken\Objects\Balance;
+use App\Jobs\UpdateBalance;
+use Butschster\Kraken\Contracts\Client;
+use Butschster\Kraken\Objects\BalanceCollection;
 use Illuminate\Console\Command;
-use Illuminate\Support\Collection;
 
 class CheckAccountBalance extends Command
 {
@@ -66,35 +65,10 @@ class CheckAccountBalance extends Command
     }
 
     /**
-     * @param Collection $balances
+     * @param BalanceCollection $balances
      */
-    public function storeBalances(Collection $balances): void
+    public function storeBalances(BalanceCollection $balances): void
     {
-        foreach ($balances as $balance) {
-            $this->storeBalance($balance);
-        }
-    }
-
-    /**
-     * @param Balance $balance
-     */
-    protected function storeBalance(Balance $balance): void
-    {
-        $lastBalance = BalanceEntity::where('currency', $balance->currency())->latest()->first();
-
-        if (!$lastBalance || $lastBalance->amount != $balance->amount()) {
-            $this->createBalanceRrecord($balance);
-        }
-    }
-
-    /**
-     * @param Balance $balance
-     */
-    protected function createBalanceRrecord(Balance $balance): void
-    {
-        BalanceEntity::create([
-            'currency' => $balance->currency(),
-            'amount' => $balance->amount()
-        ]);
+        dispatch(new UpdateBalance($balances));
     }
 }

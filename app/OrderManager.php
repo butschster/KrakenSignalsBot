@@ -2,14 +2,16 @@
 
 namespace App;
 
-use App\Contracts\OrderInformation;
 use App\Contracts\OrderManager as OrderManagerContract;
-use App\Contracts\Services\Kraken\Client;
-use App\Contracts\Services\Kraken\Order;
+use App\Contracts\Parser;
 use App\Entities\Alert;
-use App\Services\Imap\MessageContentParser;
-use App\Services\Kraken\Objects\OrderStatus;
+use App\Events\AlertProcessing;
+use App\Events\Kraken\OrderCreated;
+use Butschster\Kraken\Contracts\Client;
+use Butschster\Kraken\Contracts\Order as OrderContract;
+use Butschster\Kraken\Objects\OrderStatus;
 use Ddeboer\Imap\MessageInterface;
+use Illuminate\Contracts\Events\Dispatcher;
 
 class OrderManager implements OrderManagerContract
 {
@@ -19,96 +21,68 @@ class OrderManager implements OrderManagerContract
     private $kraken;
 
     /**
-     * @param Client $kraken
+     * @var Dispatcher
      */
-    public function __construct(Client $kraken)
+    private $events;
+
+    /**
+     * @param Client $kraken
+     * @param Dispatcher $events
+     */
+    public function __construct(Client $kraken, Dispatcher $events)
     {
         $this->kraken = $kraken;
+        $this->events = $events;
     }
 
     /**
      * Create new order and send to Kraken
      *
      * @param MessageInterface $message
+     * @param Parser $parser
      * @return OrderStatus
-     * @throws Services\Imap\MessageContentParseException
-     * @throws Services\Kraken\KrakenApiErrorException
+     * @throws \Butschster\Kraken\Exceptions\KrakenApiErrorException
      */
-    public function createOrderFromEmail(MessageInterface $message): OrderStatus
+    public function createOrderFromEmail(MessageInterface $message, Parser $parser): OrderStatus
     {
-        $orderInformation = $this->parseMessageContent($message);
-
-        $alert = $this->createAlert($message, $orderInformation);
-
-        $this->logOrderInformation($orderInformation);
-
-        $status = $this->kraken->addOrder(
-            $this->createOrderInstance($orderInformation)
-        );
-
-        $status->setAlert($alert);
-
-        return $status;
-    }
-
-    /**
-     * @param MessageInterface $message
-     * @return \App\OrderInformation
-     * @throws \App\Services\Imap\MessageContentParseException
-     */
-    protected function parseMessageContent(MessageInterface $message): OrderInformation
-    {
-        return (new MessageContentParser)
-            ->parse(
-                $message->getBodyText() ?: $message->getBodyHtml()
-            );
-    }
-
-    /**
-     * @param MessageInterface $message
-     * @param OrderInformation $orderInformation
-     * @return Alert
-     */
-    public function createAlert(MessageInterface $message, OrderInformation $orderInformation): Alert
-    {
-        return Alert::create([
-            'message_id' => $message->getId(),
-            'date' => $orderInformation->getDate(),
-            'pair' => $orderInformation->getPair(),
-            'type' => $orderInformation->getType(),
-            'volume' => $orderInformation->getVolume(),
-            'status' => Alert::STATUS_NEW
-        ]);
-    }
-
-    /**
-     * @param $orderInformation
-     */
-    protected function logOrderInformation($orderInformation): void
-    {
-        \App\Entities\Log::message(sprintf(
-            'Available new alert: [%s] %s %s',
-            $orderInformation->getPair(),
-            $orderInformation->getType(),
-            $orderInformation->getVolume()
-        ));
-    }
-
-    /**
-     * @param $orderInformation
-     * @return Services\Kraken\Order
-     */
-    protected function createOrderInstance($orderInformation): Services\Kraken\Order
-    {
-        $order = new \App\Services\Kraken\Order(
-            $orderInformation->getPair(),
-            $orderInformation->getType(),
-            Order::ORDER_TYPE_MARKET,
-            $orderInformation->getVolume()
+        $order = $parser->parse(
+            $message->getBodyText() ?: $message->getBodyHtml()
         );
 
         $order->setExpireTime(now()->addMinutes(10));
 
-        return $order;
+        $alert = $this->storeAlert($message, $order);
+
+        $this->events->dispatch(
+            new AlertProcessing($alert)
+        );
+
+        $status = $this->kraken->addOrder($order);
+
+        $this->events->dispatch(
+            new OrderCreated($alert, $status)
+        );
+
+        return $status;
+    }
+
+
+    /**
+     * @param MessageInterface $message
+     * @param OrderContract $order
+     * @return Alert
+     */
+    public function storeAlert(MessageInterface $message, OrderContract $order): Alert
+    {
+        $orderArray = $order->toArray();
+
+        return Alert::create([
+            'message_id' => $message->getId(),
+            'date' => now(),
+            'pair' => $orderArray['pair'],
+            'type' => $orderArray['type'],
+            'volume' => $orderArray['volume'],
+            'status' => Alert::STATUS_NEW
+        ]);
     }
 }

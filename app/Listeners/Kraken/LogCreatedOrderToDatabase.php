@@ -15,8 +15,7 @@ class LogCreatedOrderToDatabase
     public function handle(OrderCreated $event)
     {
         $status = $event->status;
-
-        $alert = $status->getAlert();
+        $alert = $event->alert;
 
         /** @var Order $order */
         $order = Order::create([
@@ -29,13 +28,12 @@ class LogCreatedOrderToDatabase
             'status' => Alert::STATUS_PROCESSED
         ]);
 
-        foreach ($status->getDescriptions() as $description) {
-            $order->descriptions()->create([
-                'order' => $description->getOrder(),
-                'close' => $description->getClose(),
-            ]);
-        }
+        $description = $status->getDescription();
+        $order->descriptions()->create([
+            'order' => $description->getOrder(),
+            'close' => $description->getClose(),
+        ]);
 
-        Log::message('Order information stored to database');
+        Log::message(sprintf('Order created [%s] with txid [%s]', $order->id, $status->getTransactionId()));
     }
 }

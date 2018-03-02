@@ -126,35 +126,35 @@ class ListenInboxEmails extends Command
     {
         switch ($status) {
             case 'starting':
-                return $this->writeStatus($message, 'Processing', 'comment');
+                return $this->writeStatus($message->getId(), 'Processing', 'comment');
             case 'success':
-                return $this->writeStatus($message, 'Processed', 'info');
+                return $this->writeStatus('Message processed', 'Processed', 'info');
             case 'failed':
-                return $this->writeStatus($message, 'Failed', 'error');
+                return $this->writeStatus('Message processing failed', 'Failed', 'error');
         }
     }
 
     /**
      * Format the status output.
      *
-     * @param  Message $message
-     * @param  string  $status
-     * @param  string  $type
+     * @param  string $text
+     * @param  string $status
+     * @param  string $type
      * @return void
      */
-    protected function writeStatus(Message $message, $status, $type): void
+    protected function writeStatus(string $text, $status, $type): void
     {
         $this->output->writeln(sprintf(
             "<{$type}>[%s] %s</{$type}> %s",
             now()->format('Y-m-d H:i:s'),
-            str_pad("{$status}:", 11), $message->getId()
+            str_pad("{$status}:", 11), $text
         ));
     }
 
     /**
      * Store a failed message event.
      *
-     * @param  MessageFailed  $event
+     * @param  MessageFailed $event
      * @return void
      */
     protected function logFailedJob(MessageFailed $event)

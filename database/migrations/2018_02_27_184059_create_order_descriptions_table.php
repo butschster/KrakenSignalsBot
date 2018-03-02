@@ -15,6 +15,9 @@ class CreateOrderDescriptionsTable extends Migration
     {
         Schema::create('order_descriptions', function (Blueprint $table) {
             $table->increments('id');
+            $table->text('order')->nullable();
+            $table->text('close')->nullable();
+
             $table->unsignedInteger('order_id');
 
             $table->foreign('order_id')

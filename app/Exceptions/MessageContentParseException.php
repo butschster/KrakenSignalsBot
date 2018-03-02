@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Imap;
+namespace App\Exceptions;
 
 class MessageContentParseException extends \Exception
 {

@@ -10,6 +10,7 @@ use App\Events\Imap\MessageProcessed;
 use App\Events\Imap\MessageProcessing;
 use App\Services\Imap\Worker;
 use App\Services\Imap\WorkerOptions;
+use Butschster\Kraken\Objects\OrderStatus;
 use Ddeboer\Imap\Exception\InvalidResourceException;
 use Ddeboer\Imap\MessageInterface;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -40,7 +41,7 @@ class WorkerTest extends TestCase
         $manager->shouldReceive('createOrderFromEmail')
             ->once()
             ->with($message)
-            ->andReturn(m::mock(\App\Services\Kraken\Objects\OrderStatus::class));
+            ->andReturn(m::mock(OrderStatus::class));
 
 
         $message->shouldReceive('getNumber')->once()->andReturn($number = 1);

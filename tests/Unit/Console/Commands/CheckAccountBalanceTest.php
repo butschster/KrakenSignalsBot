@@ -3,8 +3,8 @@
 namespace Tests\Unit\Console\Commands;
 
 use App\Console\Commands\Kraken\CheckAccountBalance;
-use App\Contracts\Services\Kraken\Client;
-use App\Services\Kraken\Objects\Balance;
+use Butschster\Kraken\Contracts\Client;
+use Butschster\Kraken\Objects\Balance;
 use Illuminate\Support\Collection;
 use Symfony\Component\Console\Input\StringInput;
 use Symfony\Component\Console\Output\NullOutput;
@@ -35,7 +35,7 @@ class CheckAccountBalanceTest extends TestCase
         $command->run(new StringInput(''), new NullOutput());
 
         foreach ($testBakances as $b) {
-            $balance = \App\Balance::where('currency', $b->currency())->first();
+            $balance = \App\Entities\Balance::where('currency', $b->currency())->first();
 
             if (!$balance) {
                 $this->markTestIncomplete("Balance for currency [{$b->currency()}] not found.");
@@ -76,7 +76,7 @@ class CheckAccountBalanceTest extends TestCase
         $command->storeBalances($testBakances);
 
         foreach ($testBakances as $b) {
-            $balance = \App\Balance::where('currency', $b->currency())->latest()->first();
+            $balance = \App\Entities\Balance::where('currency', $b->currency())->latest()->first();
             $this->assertEquals($b->amount(), $balance->amount);
         }
     }

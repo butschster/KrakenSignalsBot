@@ -2,7 +2,8 @@
 
 namespace App\Events\Kraken;
 
-use App\Services\Kraken\Objects\OrderStatus;
+use App\Entities\Alert;
+use Butschster\Kraken\Objects\OrderStatus;
 
 class OrderCreated
 {
@@ -12,10 +13,16 @@ class OrderCreated
     public $status;
 
     /**
+     * @var Alert
+     */
+    public $alert;
+
+    /**
      * @param OrderStatus $status
      */
-    public function __construct(OrderStatus $status)
+    public function __construct(Alert $alert, OrderStatus $status)
     {
         $this->status = $status;
+        $this->alert = $alert;
     }
 }

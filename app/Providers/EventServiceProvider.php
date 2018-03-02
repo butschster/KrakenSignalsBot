@@ -21,11 +21,17 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\Imap\MessageProcessing::class => [
             \App\Listeners\Imap\LogMessageProcessingToDatabase::class
         ],
-        \App\Events\Imap\MessageProcessed::class => [
-            \App\Listeners\Imap\LogMessageProcessingToDatabase::class
-        ],
+//        \App\Events\Imap\MessageProcessed::class => [
+//            \App\Listeners\Imap\LogMessageProcessingToDatabase::class
+//        ],
         \App\Events\Imap\MessageFailed::class => [
             \App\Listeners\Imap\LogMessageProcessingToDatabase::class
+        ],
+        \App\Events\AlertProcessing::class => [
+
+        ],
+        \App\Events\ParserFound::class => [
+            \App\Listeners\LogInformationAboutParser::class
         ]
     ];
 
