@@ -5,10 +5,13 @@ namespace App\EmailParsers;
 use App\Contracts\Parser;
 use App\Entities\Balance;
 use App\Entities\Log;
+use App\Events\Kraken\TooSmallVolume;
+use App\Exceptions\InsufficientVolumeSize;
 use App\Exceptions\MessageContentParseException;
 use App\Exceptions\NotEnoughMoneyException;
 use App\Jobs\UpdateBalance;
 use App\Services\Kraken\Order;
+use App\Services\Kraken\OrderSize;
 use Butschster\Kraken\Contracts\Client;
 use Butschster\Kraken\Contracts\Order as OrderContract;
 use Butschster\Kraken\Objects\Pair;
@@ -42,8 +45,10 @@ class PercentsOfAccountSizeParser implements Parser
      *
      * @param string $text
      * @return OrderContract
+     * @throws InsufficientVolumeSize
      * @throws MessageContentParseException
      * @throws NotEnoughMoneyException
+     * @throws \App\Exceptions\CurrencyMinimalOrderSizeNotFound
      * @throws \Butschster\Kraken\Exceptions\KrakenApiErrorException
      */
     public function parse(string $text): OrderContract
@@ -58,11 +63,9 @@ class PercentsOfAccountSizeParser implements Parser
 
         $type = $this->parseOrderType($matches['type']);
 
-        Log::message(sprintf(
+        $this->log(sprintf(
             "Parsed signal [Pair: %s] [Type: %s] [Percent of balance %s]",
-            $matches['pair'],
-            $type,
-            $matches['percent']
+            $matches['pair'], $type, $matches['percent']
         ));
 
         return new Order(
@@ -88,6 +91,8 @@ class PercentsOfAccountSizeParser implements Parser
      * @return float
      * @throws \Butschster\Kraken\Exceptions\KrakenApiErrorException
      * @throws NotEnoughMoneyException
+     * @throws \App\Exceptions\CurrencyMinimalOrderSizeNotFound
+     * @throws InsufficientVolumeSize
      */
     protected function calculateVolume(string $pair, int $percent): float
     {
@@ -97,7 +102,7 @@ class PercentsOfAccountSizeParser implements Parser
         sleep(2);
         $this->syncBalanceInformation();
 
-        $balance = Balance::where('currency', $pair->quote())->firstOrFail();
+        $balance = Balance::where('currency', $pair->quote())->latest()->firstOrFail();
 
         if ($balance->amount <= 0) {
             throw new NotEnoughMoneyException($pair->quote());
@@ -105,14 +110,12 @@ class PercentsOfAccountSizeParser implements Parser
 
         $volume = (($balance->amount * $percent) / 100) / $ticker->lastClosedPrice();
 
-        Log::message(sprintf(
+        $this->log(sprintf(
             "Calculated volume for [Pair: %s] [Currency: %s] [Account balance: %s] [Last closed price: %s] [Volume: %s]",
-            $pair->name(),
-            $pair->quote(),
-            $balance->amount,
-            $ticker->lastClosedPrice(),
-            $volume
+            $pair->name(), $pair->quote(), $balance->amount, $ticker->lastClosedPrice(), $volume
         ));
+
+        $this->checkMinimalVolumeSize($pair, $volume);
 
         return $volume;
     }
@@ -142,5 +145,30 @@ class PercentsOfAccountSizeParser implements Parser
         dispatch(new UpdateBalance(
             $this->client->getAccountBalance()
         ));
+    }
+
+    /**
+     * @param Pair $pair
+     * @param float $volume
+     * @throws InsufficientVolumeSize
+     * @throws \App\Exceptions\CurrencyMinimalOrderSizeNotFound
+     */
+    protected function checkMinimalVolumeSize(Pair $pair, float $volume): void
+    {
+        $orderSize = new OrderSize();
+
+        if (!$orderSize->checkMinimal($pair, $volume)) {
+            event(new TooSmallVolume($pair, $volume));
+
+            throw new InsufficientVolumeSize();
+        }
+    }
+
+    /**
+     * @param string $message
+     */
+    protected function log(string $message): void
+    {
+        Log::message($message);
     }
 }

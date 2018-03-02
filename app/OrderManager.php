@@ -7,6 +7,7 @@ use App\Contracts\Parser;
 use App\Entities\Alert;
 use App\Events\AlertProcessing;
 use App\Events\Kraken\OrderCreated;
+use App\Services\Kraken\OrderSize;
 use Butschster\Kraken\Contracts\Client;
 use Butschster\Kraken\Contracts\Order as OrderContract;
 use Butschster\Kraken\Objects\OrderStatus;

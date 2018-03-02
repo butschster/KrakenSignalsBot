@@ -18,6 +18,9 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\Kraken\OrderFailed::class => [
             \App\Listeners\Kraken\LogFailedOrderToDatabase::class
         ],
+        \App\Events\Kraken\TooSmallVolume::class => [
+            \App\Listeners\Kraken\LogToSmallVolume::class
+        ],
         \App\Events\Imap\MessageProcessing::class => [
             \App\Listeners\Imap\LogMessageProcessingToDatabase::class
         ],

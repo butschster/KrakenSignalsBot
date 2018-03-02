@@ -22,7 +22,7 @@
                         <th>
                             <small>{{ $log->created_at->format('d.m.Y H:i:s') }}</small>
                             <br />
-                            <span class="badge badge-info">{{ $log->type }}</span>
+                            <span class="badge @if($log->type == 'error') badge-warning @else badge-info @endif">{{ $log->type }}</span>
                         </th>
                         <td>
                             <textarea class="form-control" disabled> {{ $log->message }}</textarea>
