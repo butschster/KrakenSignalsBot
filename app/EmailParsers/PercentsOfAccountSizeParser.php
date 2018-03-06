@@ -2,34 +2,23 @@
 
 namespace App\EmailParsers;
 
-use App\Contracts\Parser;
 use App\Entities\Balance;
-use App\Entities\Log;
 use App\Events\Kraken\TooSmallVolume;
 use App\Exceptions\InsufficientVolumeSize;
-use App\Exceptions\MessageContentParseException;
-use App\Exceptions\NotEnoughMoneyException;
 use App\Jobs\UpdateBalance;
 use App\Services\Kraken\Order;
 use App\Services\Kraken\OrderSize;
-use Butschster\Kraken\Contracts\Client;
 use Butschster\Kraken\Contracts\Order as OrderContract;
 use Butschster\Kraken\Objects\Pair;
-use Butschster\Kraken\Objects\Ticker;
 
-class PercentsOfAccountSizeParser implements Parser
+class PercentsOfAccountSizeParser extends Parser
 {
     /**
-     * @var Client
+     * @return string
      */
-    protected $client;
-
-    /**
-     * @param Client $client
-     */
-    public function __construct(Client $client)
+    public function name(): string
     {
-        $this->client = $client;
+        return 'Pair with order type and percents of balance';
     }
 
     /**
@@ -45,21 +34,11 @@ class PercentsOfAccountSizeParser implements Parser
      *
      * @param string $text
      * @return OrderContract
-     * @throws InsufficientVolumeSize
-     * @throws MessageContentParseException
-     * @throws NotEnoughMoneyException
-     * @throws \App\Exceptions\CurrencyMinimalOrderSizeNotFound
      * @throws \Butschster\Kraken\Exceptions\KrakenApiErrorException
      */
     public function parse(string $text): OrderContract
     {
         preg_match($this->regex(), $text, $matches);
-
-        foreach (['pair', 'type', 'percent'] as $field) {
-            if (!isset($matches[$field])) {
-                throw new MessageContentParseException();
-            }
-        }
 
         $type = $this->parseOrderType($matches['type']);
 
@@ -77,22 +56,10 @@ class PercentsOfAccountSizeParser implements Parser
     }
 
     /**
-     * @param string $type
-     * @return string
-     */
-    protected function parseOrderType(string $type): string
-    {
-        return strtolower($type) == 'buy' ? Order::TYPE_BUY : Order::TYPE_SELL;
-    }
-
-    /**
      * @param string $pair
      * @param int $percent
      * @return float
      * @throws \Butschster\Kraken\Exceptions\KrakenApiErrorException
-     * @throws NotEnoughMoneyException
-     * @throws \App\Exceptions\CurrencyMinimalOrderSizeNotFound
-     * @throws InsufficientVolumeSize
      */
     protected function calculateVolume(string $pair, int $percent): float
     {
@@ -104,9 +71,9 @@ class PercentsOfAccountSizeParser implements Parser
 
         $balance = Balance::where('currency', $pair->quote())->latest()->firstOrFail();
 
-        if ($balance->amount <= 0) {
-            throw new NotEnoughMoneyException($pair->quote());
-        }
+//        if ($balance->amount <= 0) {
+//            throw new NotEnoughMoneyException($pair->quote());
+//        }
 
         $volume = (($balance->amount * $percent) / 100) / $ticker->lastClosedPrice();
 
@@ -115,29 +82,9 @@ class PercentsOfAccountSizeParser implements Parser
             $pair->name(), $pair->quote(), $balance->amount, $ticker->lastClosedPrice(), $volume
         ));
 
-        $this->checkMinimalVolumeSize($pair, $volume);
+//        $this->checkMinimalVolumeSize($pair, $volume);
 
         return $volume;
-    }
-
-    /**
-     * @param string $pair
-     * @return Pair
-     * @throws \Butschster\Kraken\Exceptions\KrakenApiErrorException
-     */
-    protected function getPairInformation(string $pair): Pair
-    {
-        return $this->client->getAssetPairs($pair)->first();
-    }
-
-    /**
-     * @param string $pair
-     * @return Ticker
-     * @throws \Butschster\Kraken\Exceptions\KrakenApiErrorException
-     */
-    protected function getTickerInformation(string $pair): Ticker
-    {
-        return $this->client->getTicker($pair)->first();
     }
 
     private function syncBalanceInformation()
@@ -162,13 +109,5 @@ class PercentsOfAccountSizeParser implements Parser
 
             throw new InsufficientVolumeSize();
         }
-    }
-
-    /**
-     * @param string $message
-     */
-    protected function log(string $message): void
-    {
-        Log::message($message);
     }
 }

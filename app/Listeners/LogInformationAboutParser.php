@@ -14,7 +14,7 @@ class LogInformationAboutParser
     {
         Log::message(sprintf(
             'Found parser [%s] for message %s',
-            get_class($event->parser),
+            $event->parser->name(),
             $event->message->getId()
         ));
     }

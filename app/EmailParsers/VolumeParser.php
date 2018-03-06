@@ -2,19 +2,24 @@
 
 namespace App\EmailParsers;
 
-use App\Contracts\Parser;
-use App\Exceptions\MessageContentParseException;
 use Butschster\Kraken\Contracts\Order as OrderContract;
-use App\Services\Kraken\Order;
 
-class VolumeParser implements Parser
+class VolumeParser extends Parser
 {
+    /**
+     * @return string
+     */
+    public function name(): string
+    {
+        return 'Pair with order typ, volume size and leverage';
+    }
+
     /**
      * @return string
      */
     public function regex(): string
     {
-        return '/(?<date>\d{2}\.\d{2}\.\d{4}) *(?<pair>[A-Z]{6,10}+) *(?<type>BUY|SELL) *(?<volume>\d{1,3})/';
+        return '/(?<pair>[A-Z]{6,10}+) *(?<type>BUY|SELL|buy|sell) *(?<volume>\d{1,3}(\.\d+)?)( *leverage\=(?<leverage>\d{1,3}))?/';
     }
 
     /**
@@ -22,32 +27,25 @@ class VolumeParser implements Parser
      *
      * @param string $text
      * @return OrderContract
-     * @throws MessageContentParseException
+     * @throws \Butschster\Kraken\Exceptions\KrakenApiErrorException
      */
     public function parse(string $text): OrderContract
     {
         preg_match($this->regex(), $text, $matches);
 
-        foreach (['pair', 'type', 'volume'] as $field) {
-            if (!isset($matches[$field])) {
-                throw new MessageContentParseException();
-            }
-        }
+        $pair = $this->getPairInformation($matches['pair']);
 
-        return new \Butschster\Kraken\Order(
-            $matches['pair'],
+        $order = new \Butschster\Kraken\Order(
+            $pair->name(),
             $this->parseOrderType($matches['type']),
             OrderContract::ORDER_TYPE_MARKET,
-            (float)$matches['volume']
+            (float) $matches['volume']
         );
-    }
 
-    /**
-     * @param string $type
-     * @return string
-     */
-    protected function parseOrderType(string $type): string
-    {
-        return strtolower($type) == 'buy' ? Order::TYPE_BUY : Order::TYPE_SELL;
+        if (!empty($matches['leverage'])) {
+            $order->setLeverage($matches['leverage']);
+        }
+
+        return $order;
     }
 }
