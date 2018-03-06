@@ -43,7 +43,7 @@ class PercentsOfAccountSizeParser extends Parser
         $type = $this->parseOrderType($matches['type']);
 
         $this->log(sprintf(
-            "Parsed signal [Pair: %s] [Type: %s] [Percent of balance %s]",
+            "Parsed signal [Pair: %s] [Type: %s] [Percent: %s]",
             $matches['pair'], $type, $matches['percent']
         ));
 

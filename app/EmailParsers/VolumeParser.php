@@ -11,7 +11,7 @@ class VolumeParser extends Parser
      */
     public function name(): string
     {
-        return 'Pair with order typ, volume size and leverage';
+        return 'Pair with order type, volume size and leverage';
     }
 
     /**
@@ -34,6 +34,12 @@ class VolumeParser extends Parser
         preg_match($this->regex(), $text, $matches);
 
         $pair = $this->getPairInformation($matches['pair']);
+        $type = $this->parseOrderType($matches['type']);
+
+        $this->log(sprintf(
+            "Parsed signal [Pair: %s] [Type: %s] [Volume: %s] [Leverage: %s]",
+            $pair->name(), $type, $matches['volume'], $matches['leverage'] ?? 'none'
+        ));
 
         $order = new \Butschster\Kraken\Order(
             $pair->name(),
