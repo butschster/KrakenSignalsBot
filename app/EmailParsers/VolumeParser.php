@@ -19,7 +19,7 @@ class VolumeParser extends Parser
      */
     public function regex(): string
     {
-        return '/(?<pair>[A-Z]{6,10}+) *(?<type>BUY|SELL|buy|sell) *(?<volume>\d{1,3}(\.\d+)?)( *leverage\=(?<leverage>\d{1,3}))?/';
+        return '/(?<pair>[A-Z]{6,10}+) *(?<type>BUY|SELL|buy|sell) *(?<volume>\d{1,3}(\.\d+)?)( *leverage\=(?<leverage>\d{1}))?/';
     }
 
     /**
@@ -49,7 +49,7 @@ class VolumeParser extends Parser
         );
 
         if (!empty($matches['leverage'])) {
-            $order->setLeverage($matches['leverage']);
+            $order->setLeverage($matches['leverage'].':1');
         }
 
         return $order;
