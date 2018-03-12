@@ -2,24 +2,24 @@
 
 namespace App\Console\Commands;
 
-use App\Entities\Alert;
+use App\Entities\Order;
 use Illuminate\Console\Command;
 
-class MarkOutdatedAlertsAsfailed extends Command
+class CloseOutdatedOrders extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'alerts:prune-outdated';
+    protected $signature = 'orders:prune-outdated';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Mark all outdated alerts as failed';
+    protected $description = 'Mark all outdated orders as outdated';
 
     /**
      * Execute the console command.
@@ -28,10 +28,10 @@ class MarkOutdatedAlertsAsfailed extends Command
      */
     public function handle()
     {
-        Alert::where('status', Alert::STATUS_NEW)
-            ->where('created_at', '<', now()->subMinutes(30))
+        Order::where('status', Order::STATUS_OPEN)
+            ->where('created_at', '<', now()->subDay())
             ->update([
-                'status' => Alert::STATUS_FAILED
+                'status' => Order::STATUS_OUTDATED
             ]);
     }
 }

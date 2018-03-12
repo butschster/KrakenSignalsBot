@@ -8,7 +8,8 @@ class Log extends Model
 {
     /**
      * @param string $message
-     * @return mixed
+     * @param string $type
+     * @return Log
      */
     public static function message(string $message, string $type = 'info')
     {

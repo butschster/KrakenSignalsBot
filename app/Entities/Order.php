@@ -11,6 +11,7 @@ class Order extends Model
     const STATUS_OPEN = 'open';
     const STATUS_CLOSED = 'closed';
     const STATUS_CANCELED = 'canceled';
+    const STATUS_OUTDATED = 'outdated';
 
     protected $fillable = ['txid', 'status', 'alert_id'];
 

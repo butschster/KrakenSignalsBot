@@ -6,6 +6,13 @@ use App\Entities\Log;
 
 class Client extends \Butschster\Kraken\Client
 {
+    /**
+     * @param string $method
+     * @param array $parameters
+     * @param bool $isPublic
+     * @param $headers
+     * @return array
+     */
     protected function sendRequest(string $method, array $parameters, bool $isPublic, $headers): array
     {
         Log::message(sprintf('[Method: %s] [Parameters: %s]', $method, json_encode($parameters)), 'Kraken API');

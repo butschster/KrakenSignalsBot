@@ -43,8 +43,6 @@ class CheckOrders extends Command
                 ];
             })->sortByDesc('date')
         );
-
-        $databaseOrders = Order::open()->get();
     }
 
     private function getFormattedStatus($status)
