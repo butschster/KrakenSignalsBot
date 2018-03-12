@@ -32,6 +32,46 @@ class Order extends Model
     }
 
     /**
+     * @return bool
+     */
+    public function isClosed(): bool
+    {
+        return $this->status == static::STATUS_CLOSED;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isOpen(): bool
+    {
+        return $this->status == static::STATUS_OPEN;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isCanceled(): bool
+    {
+        return $this->status == static::STATUS_CANCELED;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isOutdated(): bool
+    {
+        return $this->status == static::STATUS_OUTDATED;
+    }
+
+    /**
+     * @return bool
+     */
+    public function needAttention(): bool
+    {
+        return $this->isCanceled() || $this->isOutdated();
+    }
+
+    /**
      * @param $query
      * @return mixed
      */

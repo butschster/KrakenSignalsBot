@@ -26,16 +26,15 @@
                         @foreach($alerts as $alert)
                             <tr>
                                 <th>
-                                    <small>{{ $alert->created_at->format('d.m.Y H:i:s') }}</small>
+                                    <small>{{ date_formatted($alert->created_at) }}</small>
                                     <br/>
-                                    <span class="badge @if($alert->status == \App\Entities\Alert::STATUS_FAILED) badge-warning @elseif($alert->status == \App\Entities\Alert::STATUS_PROCESSED) badge-success  @else badge-info @endif">{{ $alert->status }}</span>
+                                    <span class="badge @if($alert->isFailed()) badge-warning @elseif($alert->isProcessed()) badge-success  @else badge-info @endif">{{ $alert->status }}</span>
                                 </th>
                                 <td>
                                     {{ $alert->pair }}
 
                                     @if($alert->order)
-                                        <br />
-                                        Order: {{ $alert->order->txid }} <span class="badge @if($alert->order->status == \App\Entities\Order::STATUS_CLOSED) badge-success @elseif($alert->order->status == \App\Entities\Order::STATUS_CANCELED) badge-warning @else badge-info @endif">{{ $alert->order->status }}</span>
+                                        @include('order.information', ['order' => $alert->order])
                                     @endif
                                 </td>
                                 <td>

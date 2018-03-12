@@ -19,4 +19,28 @@ class Alert extends Model
     {
         return $this->hasOne(Order::class);
     }
+
+    /**
+     * @return bool
+     */
+    public function isFailed(): bool
+    {
+        return $this->status == static::STATUS_FAILED;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isNew(): bool
+    {
+        return $this->status == static::STATUS_NEW;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isProcessed(): bool
+    {
+        return $this->status == static::STATUS_PROCESSED;
+    }
 }
